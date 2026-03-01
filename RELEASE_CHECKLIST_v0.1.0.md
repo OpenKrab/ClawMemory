@@ -6,6 +6,9 @@
 - Phase 2: session buffer + flush + distill + prompt-ready recall snippets
 - Phase 3: local dashboard UI (timeline/search/health/session monitor)
 - Phase 4: intent-based reminder scheduler (pending/overdue/completed)
+- Claw integrations: ClawReceipt / ClawFlow / ClawWizard
+- Optional local real vector backend (Chroma + sentence-transformers)
+- Next.js dashboard scaffold (self-host)
 
 ## Pre-release Validation
 - [x] Unit/integration tests pass

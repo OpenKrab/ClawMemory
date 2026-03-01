@@ -30,6 +30,13 @@ Now includes **OpenClaw-native plugin binding** for `memory` slot.
   - persistent commitments (`pending/overdue/completed`)
   - event-loop watcher with recovery after restart
   - due polling (no fixed cron dependency)
+- Claw ecosystem integrations:
+  - ClawReceipt recurring finance pattern capture (`finance/recurring`)
+  - ClawFlow cron setup memory + fail follow-up reminder
+  - ClawWizard preference mode memory (`interactive` vs `cli`)
+- Semantic backend options (local-only):
+  - default lightweight hashed embedding
+  - optional real local vector backend (`chroma` + sentence-transformers)
 - Baseline test coverage
 
 ## Project layout
@@ -42,8 +49,11 @@ Now includes **OpenClaw-native plugin binding** for `memory` slot.
 - `clawmemory/distill.py` - weekly curated + profile distill
 - `clawmemory/metrics.py` - precision/latency/duplicate/growth helpers
 - `clawmemory/commitments.py` - persistent intent scheduler engine
+- `clawmemory/integrations.py` - ClawReceipt/ClawFlow/ClawWizard capture helpers
+- `clawmemory/vector_semantic.py` - semantic backend abstraction (hashed/chroma)
 - `clawmemory/cli.py` - command line entrypoint
 - `clawmemory/dashboard.py` - local web server + UI + API endpoints
+- `ui/clawmemory-next/` - Next.js + shadcn-style dashboard scaffold
 
 ## Quickstart
 
@@ -73,6 +83,10 @@ This repo now exposes an OpenClaw plugin with:
   - `memory_reminder_complete`
   - `memory_reminder_snooze`
   - `memory_reminder_poll`
+  - `clawreceipt_capture_patterns`
+  - `clawflow_capture_cron_setup`
+  - `clawflow_capture_job_failure`
+  - `clawwizard_set_preference_mode`
 
 The OpenClaw plugin calls the Python backend through:
 
@@ -105,6 +119,8 @@ Optional plugin config:
 - `autoFlushMaxTurns` (default: `24`)
 - `minConfidence` (default: `0.7`)
 - `reminderDefaultSeconds` (default: `300`)
+- `vectorBackend` (`hashed` default, set `chroma` for real local vector DB)
+- `embedModel` (`all-MiniLM-L6-v2` default for chroma backend)
 
 Write one memory:
 
@@ -156,6 +172,20 @@ Then open:
 http://127.0.0.1:8787
 ```
 
+Next.js dashboard scaffold (optional):
+
+```bash
+cd ui/clawmemory-next
+npm install
+npm run dev
+```
+
+Set API base:
+
+```bash
+NEXT_PUBLIC_CLAWMEMORY_API_BASE=http://127.0.0.1:8787 npm run dev
+```
+
 Reminder commands:
 
 ```bash
@@ -172,7 +202,29 @@ Run event-loop watcher:
 clawmemory reminder-watch --interval 1.0 --max-sleep 30
 ```
 
+Integration examples:
+
+```bash
+# ClawReceipt recurring pattern capture
+python -m clawmemory.openclaw_bridge integration_capture_receipts --root memory <<'JSON'
+{"events":[{"merchant":"Shopee","amount":500,"timestamp":"2026-01-25T10:00:00+00:00"},{"merchant":"Shopee","amount":700,"timestamp":"2026-02-26T10:00:00+00:00"}]}
+JSON
+
+# ClawFlow cron setup memory
+python -m clawmemory.openclaw_bridge integration_flow_cron_setup --root memory <<'JSON'
+{"cron_expression":"0 9 * * *","job_name":"daily-report"}
+JSON
+
+# ClawWizard preference memory
+python -m clawmemory.openclaw_bridge integration_wizard_preference --root memory <<'JSON'
+{"mode":"interactive"}
+JSON
+```
+
 ## Notes
 
-- Semantic search uses a lightweight local hashed embedding to avoid external dependencies.
-- This is a starter. You can replace retrieval internals with Chroma/LanceDB/real embedding model later without changing the contract.
+- Privacy/self-host focus: no cloud API is required by default.
+- For stronger semantic retrieval, enable real local backend:
+  - `pip install -e .[vector]`
+  - `export CLAWMEMORY_VECTOR_BACKEND=chroma`
+  - optional: `export CLAWMEMORY_EMBED_MODEL=all-MiniLM-L6-v2`

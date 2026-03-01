@@ -23,6 +23,12 @@ function normalizeConfig(api) {
   const reminderDefaultSeconds = Number.isFinite(reminderDefaultSecondsRaw)
     ? Math.max(1, Math.floor(reminderDefaultSecondsRaw))
     : 300;
+  const vectorBackend = typeof cfg.vectorBackend === "string" && cfg.vectorBackend.trim()
+    ? cfg.vectorBackend.trim().toLowerCase()
+    : "hashed";
+  const embedModel = typeof cfg.embedModel === "string" && cfg.embedModel.trim()
+    ? cfg.embedModel.trim()
+    : "all-MiniLM-L6-v2";
 
   return {
     pythonBin,
@@ -31,6 +37,8 @@ function normalizeConfig(api) {
     autoFlushMaxTurns,
     minConfidence,
     reminderDefaultSeconds,
+    vectorBackend,
+    embedModel,
   };
 }
 
@@ -41,12 +49,16 @@ function textResult(text, details = {}) {
   };
 }
 
-function runBridge({ pythonBin, memoryRoot, timeoutMs, command, payload }) {
+function runBridge({ pythonBin, memoryRoot, timeoutMs, command, payload, vectorBackend, embedModel }) {
   const proc = spawnSync(pythonBin, ["-m", "clawmemory.openclaw_bridge", command, "--root", memoryRoot], {
     input: JSON.stringify(payload ?? {}),
     encoding: "utf-8",
     timeout: timeoutMs,
-    env: process.env,
+    env: {
+      ...process.env,
+      CLAWMEMORY_VECTOR_BACKEND: vectorBackend || process.env.CLAWMEMORY_VECTOR_BACKEND || "hashed",
+      CLAWMEMORY_EMBED_MODEL: embedModel || process.env.CLAWMEMORY_EMBED_MODEL || "all-MiniLM-L6-v2",
+    },
   });
 
   if (proc.error) {
@@ -422,6 +434,127 @@ const plugin = {
         },
       },
       { name: "memory_reminder_poll" },
+    );
+
+    api.registerTool(
+      {
+        name: "clawreceipt_capture_patterns",
+        label: "ClawReceipt Capture Patterns",
+        description: "Capture recurring finance patterns from receipt events and store as memory tags finance/recurring.",
+        parameters: {
+          type: "object",
+          properties: {
+            events: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  merchant: { type: "string" },
+                  amount: { type: "number" },
+                  timestamp: { type: "string" },
+                },
+              },
+            },
+          },
+          required: ["events"],
+        },
+        async execute(_toolCallId, params) {
+          const p = asObject(params);
+          const events = Array.isArray(p.events) ? p.events : [];
+          const res = runBridge({
+            ...cfg,
+            command: "integration_capture_receipts",
+            payload: { events },
+          });
+          return textResult(`clawreceipt_capture_patterns: ${res.count || 0} pattern(s)`, res);
+        },
+      },
+      { name: "clawreceipt_capture_patterns" },
+    );
+
+    api.registerTool(
+      {
+        name: "clawflow_capture_cron_setup",
+        label: "ClawFlow Capture Cron Setup",
+        description: "Remember cron setup that was installed by ClawFlow.",
+        parameters: {
+          type: "object",
+          properties: {
+            cron_expression: { type: "string" },
+            job_name: { type: "string" },
+          },
+          required: ["cron_expression", "job_name"],
+        },
+        async execute(_toolCallId, params) {
+          const p = asObject(params);
+          const res = runBridge({
+            ...cfg,
+            command: "integration_flow_cron_setup",
+            payload: {
+              cron_expression: String(p.cron_expression || "").trim(),
+              job_name: String(p.job_name || "").trim(),
+            },
+          });
+          return textResult(`clawflow_capture_cron_setup: ${res.status || "ok"}`, res);
+        },
+      },
+      { name: "clawflow_capture_cron_setup" },
+    );
+
+    api.registerTool(
+      {
+        name: "clawflow_capture_job_failure",
+        label: "ClawFlow Capture Job Failure",
+        description: "Record flow job failure and set reminder to follow up.",
+        parameters: {
+          type: "object",
+          properties: {
+            job_name: { type: "string" },
+            fail_reason: { type: "string" },
+            remind_in_seconds: { type: "number" },
+          },
+          required: ["job_name", "fail_reason"],
+        },
+        async execute(_toolCallId, params) {
+          const p = asObject(params);
+          const res = runBridge({
+            ...cfg,
+            command: "integration_flow_job_failure",
+            payload: {
+              job_name: String(p.job_name || "").trim(),
+              fail_reason: String(p.fail_reason || "").trim(),
+              remind_in_seconds: typeof p.remind_in_seconds === "number" ? Math.floor(p.remind_in_seconds) : 300,
+            },
+          });
+          return textResult(`clawflow_capture_job_failure: ${res.status || "ok"}`, res);
+        },
+      },
+      { name: "clawflow_capture_job_failure" },
+    );
+
+    api.registerTool(
+      {
+        name: "clawwizard_set_preference_mode",
+        label: "ClawWizard Set Preference Mode",
+        description: "Store user wizard preference mode (interactive or cli).",
+        parameters: {
+          type: "object",
+          properties: {
+            mode: { type: "string", enum: ["interactive", "cli"] },
+          },
+          required: ["mode"],
+        },
+        async execute(_toolCallId, params) {
+          const p = asObject(params);
+          const res = runBridge({
+            ...cfg,
+            command: "integration_wizard_preference",
+            payload: { mode: String(p.mode || "").trim().toLowerCase() },
+          });
+          return textResult(`clawwizard_set_preference_mode: ${res.status || "ok"}`, res);
+        },
+      },
+      { name: "clawwizard_set_preference_mode" },
     );
   },
 };

@@ -175,6 +175,42 @@ def _dashboard_html() -> str:
     ul { margin: 0; padding-left: 18px; }
     li { margin: 6px 0; }
     .empty { color: var(--muted); font-size: 13px; }
+    .office {
+      border: 1px dashed #a6b9db;
+      border-radius: 12px;
+      padding: 8px;
+      background: linear-gradient(160deg, #f8fbff, #e9f2ff);
+    }
+    .room {
+      position: relative;
+      height: 130px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #dbeafe, #bfdbfe 55%, #94a3b8 56%, #94a3b8);
+      overflow: hidden;
+    }
+    .cabinet {
+      position: absolute;
+      right: 16px;
+      bottom: 22px;
+      width: 42px;
+      height: 54px;
+      border-radius: 6px;
+      background: #334155;
+      border: 2px solid #0f172a;
+      box-shadow: inset 0 -10px #1e293b;
+    }
+    .agent-dot {
+      position: absolute;
+      left: 18px;
+      bottom: 26px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #22c55e;
+      border: 2px solid #14532d;
+      transition: left .8s ease;
+    }
+    .agent-dot.to-cabinet { left: 290px; }
     @keyframes fadeIn { from {opacity:0; transform: translateY(3px);} to {opacity:1; transform:none;} }
     @media (max-width: 940px) { .layout { grid-template-columns: 1fr; } }
   </style>
@@ -221,6 +257,16 @@ def _dashboard_html() -> str:
             <button id=\"pollDueBtn\">Poll Due</button>
           </div>
           <div class=\"list\" id=\"commitments\"></div>
+        </section>
+        <section class=\"card\">
+          <h2 class=\"panel-title\">Virtual Office</h2>
+          <div class=\"office\">
+            <div class=\"room\">
+              <div class=\"cabinet\" title=\"Filing Cabinet\"></div>
+              <div class=\"agent-dot\" id=\"agentDot\" title=\"Agent\"></div>
+            </div>
+            <div class=\"sub\" style=\"margin-top:8px;\">When distill runs, agent walks to filing cabinet and updates memory.</div>
+          </div>
         </section>
       </aside>
     </div>
@@ -314,7 +360,10 @@ $('q').addEventListener('keydown', (ev) => {
   if (ev.key === 'Enter') searchNow();
 });
 $('distillBtn').addEventListener('click', async () => {
+  const dot = $('agentDot');
+  dot.classList.add('to-cabinet');
   await getJson('/api/distill?days=7', { method: 'POST' });
+  setTimeout(() => dot.classList.remove('to-cabinet'), 1000);
   await refreshSnapshot();
 });
 $('pollDueBtn').addEventListener('click', async () => {

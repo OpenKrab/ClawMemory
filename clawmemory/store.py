@@ -9,6 +9,7 @@ from time import perf_counter
 from typing import Any
 
 from .contract import MemoryEntry
+from .vector_semantic import build_semantic_backend
 
 DIMS = 128
 
@@ -114,6 +115,7 @@ class MemoryStore:
         self.db_path = self.root / "index.sqlite3"
         self.curated_path = self.root / "MEMORY.md"
         self.profile_path = self.root / "profile.md"
+        self.semantic_backend = build_semantic_backend(self.root)
 
     def initialize(self) -> None:
         self.events.mkdir(parents=True, exist_ok=True)
@@ -218,6 +220,12 @@ class MemoryStore:
                 "INSERT INTO memories_fts (id, text, tags, source) VALUES (?, ?, ?, ?)",
                 (entry["id"], entry["text"], " ".join(entry["tags"]), entry["source"]),
             )
+        # Optional real vector index (local-only), no-op unless backend configured.
+        self.semantic_backend.upsert(
+            memory_id=entry["id"],
+            text=entry["text"],
+            metadata={"source": entry["source"], "tags": ",".join(entry["tags"])},
+        )
 
         return {
             "status": "stored",
@@ -318,6 +326,7 @@ class MemoryStore:
         q_tokens = set(_tokenize(query))
 
         fts_map = self._fts_scores(query, max(k * 4, 10))
+        semantic_map = self.semantic_backend.query(query=query, k=max(k * 4, 10))
 
         with sqlite3.connect(self.db_path) as conn:
             raw_rows = conn.execute(
@@ -334,7 +343,7 @@ class MemoryStore:
             text = row[3]
             emb = json.loads(row[7])
             tset = set(json.loads(row[8]))
-            semantic = _cosine(q_embed, emb)
+            semantic = semantic_map.get(mid, _cosine(q_embed, emb))
             lexical = max(fts_map.get(mid, 0.0), _jaccard(q_tokens, tset))
             score = semantic_weight * semantic + (1 - semantic_weight) * lexical
             ranked.append(
@@ -363,6 +372,7 @@ class MemoryStore:
             "query": query,
             "k": k,
             "latency_ms": round((perf_counter() - started) * 1000, 2),
+            "semantic_backend": self.semantic_backend.name,
             "results": top,
         }
         if include_prompt_context:

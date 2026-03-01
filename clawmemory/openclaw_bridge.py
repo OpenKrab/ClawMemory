@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from .tools import (
+    integration_capture_receipts,
+    integration_flow_cron_setup,
+    integration_flow_job_failure,
+    integration_wizard_preference,
     memory_distill,
     memory_get,
     memory_search,
@@ -49,6 +53,10 @@ def main() -> int:
             "reminder_complete",
             "reminder_snooze",
             "reminder_poll",
+            "integration_capture_receipts",
+            "integration_flow_cron_setup",
+            "integration_flow_job_failure",
+            "integration_wizard_preference",
         ],
     )
     parser.add_argument("--root", default="memory")
@@ -152,6 +160,41 @@ def main() -> int:
 
     if args.command == "reminder_poll":
         result = reminder_poll(root=root, limit=int(payload.get("limit", 50) or 50))
+        print(json.dumps(result))
+        return 0
+
+    if args.command == "integration_capture_receipts":
+        events = payload.get("events", [])
+        if not isinstance(events, list):
+            events = []
+        result = integration_capture_receipts(events=events, root=root)
+        print(json.dumps(result))
+        return 0
+
+    if args.command == "integration_flow_cron_setup":
+        result = integration_flow_cron_setup(
+            cron_expression=str(payload.get("cron_expression", "")).strip(),
+            job_name=str(payload.get("job_name", "")).strip(),
+            root=root,
+        )
+        print(json.dumps(result))
+        return 0
+
+    if args.command == "integration_flow_job_failure":
+        result = integration_flow_job_failure(
+            job_name=str(payload.get("job_name", "")).strip(),
+            fail_reason=str(payload.get("fail_reason", "")).strip(),
+            remind_in_seconds=int(payload.get("remind_in_seconds", 300) or 300),
+            root=root,
+        )
+        print(json.dumps(result))
+        return 0
+
+    if args.command == "integration_wizard_preference":
+        result = integration_wizard_preference(
+            mode=str(payload.get("mode", "")).strip(),
+            root=root,
+        )
         print(json.dumps(result))
         return 0
 

@@ -37,6 +37,16 @@
         "type": "number",
         "description": "Default due duration for reminder_set when omitted",
         "default": 300
+      },
+      "vectorBackend": {
+        "type": "string",
+        "description": "Semantic backend: hashed (default) or chroma (local)",
+        "default": "hashed"
+      },
+      "embedModel": {
+        "type": "string",
+        "description": "Local sentence-transformers model used when vectorBackend=chroma",
+        "default": "all-MiniLM-L6-v2"
       }
     }
   }

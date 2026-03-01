@@ -5,6 +5,12 @@ from typing import Any
 
 from .commitments import CommitmentEngine
 from .distill import weekly_distill
+from .integrations import (
+    capture_flow_cron_setup,
+    capture_flow_job_failure,
+    capture_receipt_patterns,
+    capture_wizard_preference,
+)
 from .session_buffer import SessionBuffer
 from .store import MemoryStore
 
@@ -138,3 +144,39 @@ def reminder_snooze(
 def reminder_poll(root: str | Path = "memory", limit: int = 50) -> dict[str, Any]:
     engine = CommitmentEngine(root)
     return engine.poll_due(limit=limit)
+
+
+def integration_capture_receipts(
+    events: list[dict[str, Any]],
+    root: str | Path = "memory",
+) -> dict[str, Any]:
+    return capture_receipt_patterns(events=events, root=str(root))
+
+
+def integration_flow_cron_setup(
+    cron_expression: str,
+    job_name: str,
+    root: str | Path = "memory",
+) -> dict[str, Any]:
+    return capture_flow_cron_setup(cron_expression=cron_expression, job_name=job_name, root=str(root))
+
+
+def integration_flow_job_failure(
+    job_name: str,
+    fail_reason: str,
+    remind_in_seconds: int = 300,
+    root: str | Path = "memory",
+) -> dict[str, Any]:
+    return capture_flow_job_failure(
+        job_name=job_name,
+        fail_reason=fail_reason,
+        remind_in_seconds=remind_in_seconds,
+        root=str(root),
+    )
+
+
+def integration_wizard_preference(
+    mode: str,
+    root: str | Path = "memory",
+) -> dict[str, Any]:
+    return capture_wizard_preference(mode=mode, root=str(root))
