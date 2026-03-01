@@ -24,8 +24,8 @@
 - [x] README updated with run/install instructions
 
 ## Release Steps
-- [ ] Commit all release files
-- [ ] Create annotated tag: `v0.1.0`
+- [x] Commit all release files
+- [x] Create annotated tag: `v0.1.0`
 - [ ] Push branch and tags to GitHub
 - [ ] Create GitHub Release with notes
 
@@ -36,4 +36,3 @@
   - `openclaw plugins install --link /path/to/ClawMemory`
   - `openclaw plugins enable clawmemory`
   - set `plugins.slots.memory = "clawmemory"`
-
