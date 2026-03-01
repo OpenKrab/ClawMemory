@@ -1,0 +1,140 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from .commitments import CommitmentEngine
+from .distill import weekly_distill
+from .session_buffer import SessionBuffer
+from .store import MemoryStore
+
+
+def memory_write(payload: dict[str, Any], root: str | Path = "memory") -> dict[str, Any]:
+    store = MemoryStore(root)
+    return store.write(payload)
+
+
+def memory_search(
+    query: str,
+    k: int = 5,
+    root: str | Path = "memory",
+    include_prompt_context: bool = True,
+) -> dict[str, Any]:
+    store = MemoryStore(root)
+    return store.search(query=query, k=k, include_prompt_context=include_prompt_context)
+
+
+def memory_get(memory_id: str, root: str | Path = "memory") -> dict[str, Any] | None:
+    store = MemoryStore(root)
+    return store.get(memory_id)
+
+
+def memory_session_append(
+    session_id: str,
+    role: str,
+    content: str,
+    root: str | Path = "memory",
+    auto_flush_max_turns: int = 24,
+    min_confidence: float = 0.7,
+) -> dict[str, Any]:
+    buffer = SessionBuffer(root)
+    return buffer.append_turn(
+        session_id=session_id,
+        role=role,
+        content=content,
+        auto_flush_max_turns=auto_flush_max_turns,
+        min_confidence=min_confidence,
+    )
+
+
+def memory_session_peek(
+    session_id: str,
+    root: str | Path = "memory",
+    limit: int | None = None,
+) -> dict[str, Any]:
+    buffer = SessionBuffer(root)
+    turns = buffer.read_turns(session_id=session_id, limit=limit)
+    return {
+        "status": "ok",
+        "session_id": session_id,
+        "count": len(turns),
+        "turns": turns,
+    }
+
+
+def memory_session_flush(
+    session_id: str,
+    root: str | Path = "memory",
+    min_confidence: float = 0.7,
+    keep_buffer: bool = False,
+) -> dict[str, Any]:
+    buffer = SessionBuffer(root)
+    return buffer.flush_session(
+        session_id=session_id,
+        min_confidence=min_confidence,
+        keep_buffer=keep_buffer,
+    )
+
+
+def memory_distill(root: str | Path = "memory", days: int = 7) -> dict[str, object]:
+    return weekly_distill(root=root, days=days)
+
+
+def reminder_set(
+    text: str,
+    root: str | Path = "memory",
+    due_in_seconds: int | None = None,
+    due_at: str | None = None,
+    session_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    engine = CommitmentEngine(root)
+    return engine.create(
+        text=text,
+        due_in_seconds=due_in_seconds,
+        due_at=due_at,
+        session_id=session_id,
+        metadata=metadata,
+    )
+
+
+def reminder_status(
+    root: str | Path = "memory",
+    status: str | None = None,
+    limit: int = 200,
+) -> dict[str, Any]:
+    engine = CommitmentEngine(root)
+    return {
+        "status": "ok",
+        "items": engine.list(status=status, limit=limit),
+        "health": engine.health(),
+    }
+
+
+def reminder_complete(
+    reminder_id: str,
+    root: str | Path = "memory",
+    note: str | None = None,
+) -> dict[str, Any]:
+    engine = CommitmentEngine(root)
+    row = engine.complete(reminder_id, note=note)
+    if row is None:
+        return {"status": "not_found", "id": reminder_id}
+    return {"status": "ok", "item": row}
+
+
+def reminder_snooze(
+    reminder_id: str,
+    seconds: int,
+    root: str | Path = "memory",
+) -> dict[str, Any]:
+    engine = CommitmentEngine(root)
+    row = engine.snooze(reminder_id, seconds=seconds)
+    if row is None:
+        return {"status": "not_found", "id": reminder_id}
+    return {"status": "ok", "item": row}
+
+
+def reminder_poll(root: str | Path = "memory", limit: int = 50) -> dict[str, Any]:
+    engine = CommitmentEngine(root)
+    return engine.poll_due(limit=limit)

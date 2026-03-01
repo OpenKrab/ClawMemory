@@ -1,0 +1,43 @@
+{
+  "id": "clawmemory",
+  "name": "ClawMemory",
+  "description": "Local-first memory plugin (Markdown + SQLite) for OpenClaw",
+  "version": "0.2.0",
+  "kind": "memory",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "pythonBin": {
+        "type": "string",
+        "description": "Python executable used to run ClawMemory bridge",
+        "default": "python3"
+      },
+      "memoryRoot": {
+        "type": "string",
+        "description": "Memory root directory (resolved by openclaw resolvePath)",
+        "default": "memory"
+      },
+      "timeoutMs": {
+        "type": "number",
+        "description": "Timeout for bridge execution",
+        "default": 20000
+      },
+      "autoFlushMaxTurns": {
+        "type": "number",
+        "description": "Auto flush short-term session buffer after N turns",
+        "default": 24
+      },
+      "minConfidence": {
+        "type": "number",
+        "description": "Minimum confidence for session fact extraction",
+        "default": 0.7
+      },
+      "reminderDefaultSeconds": {
+        "type": "number",
+        "description": "Default due duration for reminder_set when omitted",
+        "default": 300
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "ClawMemory",
+  "version": "0.1.0",
+  "description": "Local-first memory contract and retrieval tools",
+  "entry": "clawmemory.tools",
+  "tools": [
+    { "name": "memory_write", "description": "Write memory payload with dedup" },
+    { "name": "memory_search", "description": "Hybrid search over memory" },
+    { "name": "memory_get", "description": "Get memory by id with provenance" }
+  ]
+}

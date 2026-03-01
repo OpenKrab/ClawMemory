@@ -1,0 +1,12 @@
+{
+  "name": "@openkrab/clawmemory",
+  "version": "0.2.0",
+  "private": true,
+  "description": "ClawMemory OpenClaw plugin binding",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  }
+}

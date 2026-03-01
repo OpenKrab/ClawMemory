@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "I prefer wizard setup instead of raw CLI for cron jobs."
+  },
+  {
+    "role": "assistant",
+    "content": "Noted. Currently working on receipt categorization constraints."
+  },
+  {
+    "role": "user",
+    "content": "Deadline is 2026-03-10."
+  }
+]
