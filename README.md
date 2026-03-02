@@ -1,105 +1,98 @@
-# ClawMemory
+# 🦞 ClawMemory
 
-Starter implementation for **Phase 4: Intent-Based Scheduler + Dashboard**.
-Now includes **OpenClaw-native plugin binding** for `memory` slot.
+**ClawMemory** is a local-first memory layer for OpenClaw/OpenKrab ecosystem.  
+It gives agents persistent memory, semantic recall, session buffering, reminder commitments, and a self-host dashboard.
 
-## What is included
+<p align="center">
+  <img src="/public/banner.png" alt="ClawMemory Banner" width="700">
+</p>
 
-- Memory contract with required metadata: `id`, `source`, `timestamp`, `tags`, `confidence`
-- Local-first storage:
-  - Markdown source of truth in `memory/events/*.md`
-  - SQLite index in `memory/index.sqlite3`
-  - Curated summary in `memory/MEMORY.md`
-  - Stable profile in `memory/profile.md`
-- Core tools:
-  - `memory_write(payload)`
-  - `memory_search(query, k)` (hybrid keyword + semantic + snippet + prompt context)
-  - `memory_get(id)` with provenance
-- Short-term memory:
-  - session buffer append/peek/flush
-  - auto-flush threshold
-- Safe auto-capture extractor with confidence threshold
-- Weekly distill (`events -> MEMORY.md` + `profile.md`)
-- Local dashboard UI:
-  - memory browser timeline
-  - search and snippet recall
-  - top source/tag health cards
-  - session buffer monitor
-  - one-click weekly distill trigger
-- Intent-based reminder scheduler:
-  - persistent commitments (`pending/overdue/completed`)
-  - event-loop watcher with recovery after restart
-  - due polling (no fixed cron dependency)
-- Claw ecosystem integrations:
-  - ClawReceipt recurring finance pattern capture (`finance/recurring`)
-  - ClawFlow cron setup memory + fail follow-up reminder
-  - ClawWizard preference mode memory (`interactive` vs `cli`)
-- Semantic backend options (local-only):
-  - default lightweight hashed embedding
-  - optional real local vector backend (`chroma` + sentence-transformers)
-- Baseline test coverage
+## Features
 
-## Project layout
+- **Persistent Memory**: Markdown source of truth + SQLite index (`memory/events`, `memory/index.sqlite3`).
+- **Smart Recall**: Hybrid lexical + semantic retrieval with snippets and prompt-ready context.
+- **Session Buffer**: Append/peek/flush short-term memory safely.
+- **Intent Scheduler**: `pending/overdue/completed` reminders (better than plain cron).
+- **Dashboard UI**: Timeline, search, health cards, sessions, commitments, virtual office filing cabinet cue.
+- **Claw Integrations**:
+  - `ClawReceipt`: recurring purchase patterns (`finance/recurring`)
+  - `ClawFlow`: cron setup memory + fail follow-up reminders
+  - `ClawWizard`: preference memory (`interactive` vs `cli`)
+- **Privacy First**: Self-host/local by default, no cloud API required.
+- **Optional Real Vector DB**: Chroma + sentence-transformers (local).
 
-- `clawmemory/contract.py` - memory schema and payload validation
-- `clawmemory/store.py` - markdown + sqlite index + hybrid retrieval + dedup
-- `clawmemory/tools.py` - public tool functions
-- `clawmemory/autocapture.py` - reusable-fact extractor
-- `clawmemory/session_buffer.py` - short-term session buffer + flush
-- `clawmemory/distill.py` - weekly curated + profile distill
-- `clawmemory/metrics.py` - precision/latency/duplicate/growth helpers
-- `clawmemory/commitments.py` - persistent intent scheduler engine
-- `clawmemory/integrations.py` - ClawReceipt/ClawFlow/ClawWizard capture helpers
-- `clawmemory/vector_semantic.py` - semantic backend abstraction (hashed/chroma)
-- `clawmemory/cli.py` - command line entrypoint
-- `clawmemory/dashboard.py` - local web server + UI + API endpoints
-- `ui/clawmemory-next/` - Next.js + shadcn-style dashboard scaffold
+---
 
-## Quickstart
+## Memory Flow
+
+```mermaid
+flowchart TD
+    A([User/Tool Event]) --> B{Capture Type}
+    B -->|Direct Fact| C[memory_write]
+    B -->|Conversation Turn| D[memory_session_append]
+    D --> E{Flush condition met?}
+    E -->|yes| F[memory_session_flush]
+    E -->|no| D
+
+    C --> G[(Markdown + SQLite)]
+    F --> G
+
+    G --> H[memory_search]
+    H --> I[snippet + prompt_context]
+
+    G --> J[memory_distill]
+    J --> K[MEMORY.md]
+    J --> L[profile.md]
+
+    M[reminder_set] --> N[(commitments.sqlite3)]
+    N --> O[reminder_poll/watch]
+    O --> P[overdue or completed]
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10+
+- OpenClaw CLI (recommended for plugin usage)
+
+### Installation
+
+1. Clone repo
+
+```bash
+git clone https://github.com/OpenKrab/ClawMemory.git
+cd ClawMemory
+```
+
+2. Create virtual environment and install
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
-pytest
 ```
 
-## OpenClaw plugin binding
+3. Run tests
 
-This repo now exposes an OpenClaw plugin with:
+```bash
+pytest -q tests --capture=no
+```
 
-- `openclaw.plugin.json` (`id: clawmemory`, `kind: memory`)
-- `package.json` with `openclaw.extensions = ["./index.js"]`
-- `index.js` registering:
-  - `memory_write`
-  - `memory_search`
-  - `memory_get`
-  - `memory_session_append`
-  - `memory_session_peek`
-  - `memory_session_flush`
-  - `memory_distill`
-  - `memory_reminder_set`
-  - `memory_reminder_status`
-  - `memory_reminder_complete`
-  - `memory_reminder_snooze`
-  - `memory_reminder_poll`
-  - `clawreceipt_capture_patterns`
-  - `clawflow_capture_cron_setup`
-  - `clawflow_capture_job_failure`
-  - `clawwizard_set_preference_mode`
+---
 
-The OpenClaw plugin calls the Python backend through:
+## OpenClaw Plugin Setup
 
-- `python -m clawmemory.openclaw_bridge`
-
-### Install into OpenClaw
+Install plugin from local path:
 
 ```bash
 openclaw plugins install --link /absolute/path/to/ClawMemory
 openclaw plugins enable clawmemory
 ```
 
-Set memory slot to this plugin in OpenClaw config:
+Set memory slot:
 
 ```json
 {
@@ -111,7 +104,7 @@ Set memory slot to this plugin in OpenClaw config:
 }
 ```
 
-Optional plugin config:
+### Plugin Config
 
 - `pythonBin` (default: `python3`)
 - `memoryRoot` (default: `memory`)
@@ -119,40 +112,22 @@ Optional plugin config:
 - `autoFlushMaxTurns` (default: `24`)
 - `minConfidence` (default: `0.7`)
 - `reminderDefaultSeconds` (default: `300`)
-- `vectorBackend` (`hashed` default, set `chroma` for real local vector DB)
-- `embedModel` (`all-MiniLM-L6-v2` default for chroma backend)
+- `vectorBackend` (`hashed` | `chroma`)
+- `embedModel` (default: `all-MiniLM-L6-v2`)
 
-Write one memory:
+---
 
-```bash
-clawmemory write --payload '{"text":"User prefers interactive wizard over CLI.","source":"clawwizard/session","tags":["preference"],"confidence":0.9}'
-```
+## Core Commands
 
-Search memories:
+### Memory
 
 ```bash
+clawmemory write --payload '{"text":"User prefers interactive wizard","source":"clawwizard/session","tags":["preference"],"confidence":0.9}'
 clawmemory search --query "wizard preference" -k 5
-```
-
-Get memory:
-
-```bash
 clawmemory get --id <memory_id>
 ```
 
-Auto-capture + write:
-
-```bash
-clawmemory autocapture --conversation examples/conversation.json --min-confidence 0.7 --write
-```
-
-Weekly distill:
-
-```bash
-clawmemory distill --days 7
-```
-
-Session buffer append/peek/flush:
+### Session Buffer
 
 ```bash
 clawmemory session-append --session-id s1 --role user --content "I prefer wizard setup"
@@ -160,33 +135,13 @@ clawmemory session-peek --session-id s1 --limit 20
 clawmemory session-flush --session-id s1 --min-confidence 0.7
 ```
 
-Run dashboard UI:
+### Distill
 
 ```bash
-clawmemory dashboard --host 127.0.0.1 --port 8787
+clawmemory distill --days 7
 ```
 
-Then open:
-
-```text
-http://127.0.0.1:8787
-```
-
-Next.js dashboard scaffold (optional):
-
-```bash
-cd ui/clawmemory-next
-npm install
-npm run dev
-```
-
-Set API base:
-
-```bash
-NEXT_PUBLIC_CLAWMEMORY_API_BASE=http://127.0.0.1:8787 npm run dev
-```
-
-Reminder commands:
+### Reminders
 
 ```bash
 clawmemory reminder-set --text "check build result" --in-seconds 300
@@ -194,37 +149,111 @@ clawmemory reminder-list --status pending
 clawmemory reminder-poll --limit 100
 clawmemory reminder-complete --id <reminder_id> --note "done"
 clawmemory reminder-snooze --id <reminder_id> --seconds 120
-```
-
-Run event-loop watcher:
-
-```bash
 clawmemory reminder-watch --interval 1.0 --max-sleep 30
 ```
 
-Integration examples:
+---
+
+## Integration Commands
+
+### ClawReceipt pattern capture
 
 ```bash
-# ClawReceipt recurring pattern capture
 python -m clawmemory.openclaw_bridge integration_capture_receipts --root memory <<'JSON'
 {"events":[{"merchant":"Shopee","amount":500,"timestamp":"2026-01-25T10:00:00+00:00"},{"merchant":"Shopee","amount":700,"timestamp":"2026-02-26T10:00:00+00:00"}]}
 JSON
+```
 
-# ClawFlow cron setup memory
+### ClawFlow cron setup
+
+```bash
 python -m clawmemory.openclaw_bridge integration_flow_cron_setup --root memory <<'JSON'
 {"cron_expression":"0 9 * * *","job_name":"daily-report"}
 JSON
+```
 
-# ClawWizard preference memory
+### ClawFlow failure follow-up
+
+```bash
+python -m clawmemory.openclaw_bridge integration_flow_job_failure --root memory <<'JSON'
+{"job_name":"daily-report","fail_reason":"timeout","remind_in_seconds":300}
+JSON
+```
+
+### ClawWizard preference mode
+
+```bash
 python -m clawmemory.openclaw_bridge integration_wizard_preference --root memory <<'JSON'
 {"mode":"interactive"}
 JSON
 ```
 
-## Notes
+---
 
-- Privacy/self-host focus: no cloud API is required by default.
-- For stronger semantic retrieval, enable real local backend:
-  - `pip install -e .[vector]`
-  - `export CLAWMEMORY_VECTOR_BACKEND=chroma`
-  - optional: `export CLAWMEMORY_EMBED_MODEL=all-MiniLM-L6-v2`
+## Dashboard
+
+Run local dashboard:
+
+```bash
+clawmemory dashboard --host 127.0.0.1 --port 8787
+```
+
+Open: `http://127.0.0.1:8787`
+
+### Optional Next.js UI (shadcn-style scaffold)
+
+```bash
+cd ui/clawmemory-next
+npm install
+NEXT_PUBLIC_CLAWMEMORY_API_BASE=http://127.0.0.1:8787 npm run dev
+```
+
+---
+
+## Semantic Backend Options
+
+### Default lightweight mode
+
+No extra install needed.
+
+### Real local vector mode
+
+```bash
+pip install -e .[vector]
+export CLAWMEMORY_VECTOR_BACKEND=chroma
+export CLAWMEMORY_EMBED_MODEL=all-MiniLM-L6-v2
+```
+
+---
+
+## Project Structure
+
+- `clawmemory/store.py` - storage + retrieval
+- `clawmemory/vector_semantic.py` - semantic backend abstraction
+- `clawmemory/session_buffer.py` - short-term memory buffer
+- `clawmemory/distill.py` - distillation pipeline
+- `clawmemory/commitments.py` - reminder engine
+- `clawmemory/integrations.py` - ClawReceipt/Flow/Wizard capture helpers
+- `clawmemory/dashboard.py` - local UI server
+- `clawmemory/openclaw_bridge.py` - OpenClaw bridge command entrypoint
+- `index.js` - OpenClaw runtime plugin bindings
+- `openclaw.plugin.json` - OpenClaw plugin manifest
+- `skills/clawmemory/SKILL.md` - skill instructions
+
+---
+
+## Testing
+
+```bash
+pytest -q tests --capture=no
+```
+
+---
+
+## Contributing
+
+PRs are welcome. Please include tests for behavior changes and keep self-host/privacy defaults intact.
+
+---
+
+*Built for the Lobster Way 🦞*
