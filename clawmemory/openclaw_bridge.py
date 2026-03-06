@@ -11,6 +11,7 @@ from .tools import (
     integration_flow_cron_setup,
     integration_flow_job_failure,
     integration_wizard_preference,
+    integration_graph_sync,
     memory_distill,
     memory_get,
     memory_search,
@@ -57,6 +58,7 @@ def main() -> int:
             "integration_flow_cron_setup",
             "integration_flow_job_failure",
             "integration_wizard_preference",
+            "integration_graph_sync",
         ],
     )
     parser.add_argument("--root", default="memory")
@@ -197,7 +199,15 @@ def main() -> int:
         )
         print(json.dumps(result))
         return 0
-
+ 
+    if args.command == "integration_graph_sync":
+        entities = payload.get("entities", {})
+        if not isinstance(entities, dict):
+            entities = {}
+        result = integration_graph_sync(entities=entities, root=root)
+        print(json.dumps(result))
+        return 0
+ 
     result = memory_distill(root=root, days=int(payload.get("days", 7) or 7))
     print(json.dumps(result))
     return 0

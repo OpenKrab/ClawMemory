@@ -1,3 +1,18 @@
+Metadata-Version: 2.4
+Name: clawmemory
+Version: 0.1.0
+Summary: Local-first memory layer for OpenKrab/OpenClaw-style agents
+Author: Nattapong
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: rich>=13.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Provides-Extra: vector
+Requires-Dist: chromadb>=0.5.0; extra == "vector"
+Requires-Dist: sentence-transformers>=3.0.0; extra == "vector"
+
 # 🦞 ClawMemory
 
 **ClawMemory** is a local-first memory layer for OpenClaw/OpenKrab ecosystem.  

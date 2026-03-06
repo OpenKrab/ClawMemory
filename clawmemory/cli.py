@@ -19,8 +19,15 @@ from .tools import (
     reminder_snooze,
     reminder_status,
 )
-from .dashboard import run_dashboard_server
 from .commitments import CommitmentEngine
+from .tui_utils import (
+    print_banner,
+    print_section,
+    print_key_value,
+    print_success,
+    print_info,
+    COLORS
+)
 
 
 def main() -> None:
@@ -63,10 +70,6 @@ def main() -> None:
     flush_cmd.add_argument("--min-confidence", type=float, default=0.7)
     flush_cmd.add_argument("--keep-buffer", action="store_true")
 
-    dashboard_cmd = sub.add_parser("dashboard", help="Run local ClawMemory web dashboard")
-    dashboard_cmd.add_argument("--host", default="127.0.0.1")
-    dashboard_cmd.add_argument("--port", type=int, default=8787)
-
     reminder_set_cmd = sub.add_parser("reminder-set", help="Create reminder/commitment")
     reminder_set_cmd.add_argument("--text", required=True)
     reminder_set_cmd.add_argument("--in-seconds", type=int, default=None)
@@ -91,6 +94,8 @@ def main() -> None:
     reminder_watch_cmd = sub.add_parser("reminder-watch", help="Run event-loop reminder watcher")
     reminder_watch_cmd.add_argument("--interval", type=float, default=1.0)
     reminder_watch_cmd.add_argument("--max-sleep", type=float, default=30.0)
+
+    sub.add_parser("stats", help="Show memory statistics (TUI style)")
 
     args = parser.parse_args()
     root = Path(args.root)
@@ -159,10 +164,6 @@ def main() -> None:
         )
         return
 
-    if args.command == "dashboard":
-        run_dashboard_server(root=root, host=args.host, port=args.port)
-        return
-
     if args.command == "reminder-set":
         print(
             json.dumps(
@@ -202,6 +203,32 @@ def main() -> None:
     if args.command == "reminder-watch":
         engine = CommitmentEngine(root)
         engine.watch(interval_seconds=args.interval, max_sleep_seconds=args.max_sleep)
+        return
+
+    if args.command == "stats":
+        from .store import MemoryStore
+        from .commitments import CommitmentEngine
+
+        store = MemoryStore(root)
+        commitments = CommitmentEngine(root)
+
+        total = store.count()
+        health = commitments.health()
+
+        print_banner()
+        print_section("General Statistics")
+        print_key_value("Total Memories", str(total))
+        print_key_value("Root Directory", str(root))
+
+        print_section("Commitment Health")
+        print_key_value("Pending", str(health["counts"]["pending"]))
+        print_key_value("Overdue", str(health["counts"]["overdue"]))
+        print_key_value("Completed", str(health["counts"]["completed"]))
+        print_key_value("Due Soon (5m)", str(health["due_soon_5m"]))
+
+        print_section("System Status")
+        print_success("Database integration: OK")
+        print_info(f"Last update: {health['now']}")
         return
 
 

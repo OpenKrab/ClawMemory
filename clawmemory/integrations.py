@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
@@ -126,3 +127,48 @@ def capture_wizard_preference(
             "metadata": {"wizard_mode": normalized},
         }
     )
+
+
+def capture_graph_entities(
+    entities: dict[str, list[dict[str, Any]]],
+    root: str = "memory",
+) -> dict[str, Any]:
+    store = MemoryStore(root)
+    store.initialize()
+    results = {}
+
+    with sqlite3.connect(store.db_path) as conn:
+        # Projects
+        for proj in entities.get("projects", []):
+            conn.execute(
+                "INSERT OR REPLACE INTO projects (id, name, deadline, client_id) VALUES (?, ?, ?, ?)",
+                (proj["id"], proj["name"], proj.get("deadline"), proj.get("client_id")),
+            )
+        # Clients
+        for client in entities.get("clients", []):
+            conn.execute(
+                "INSERT OR REPLACE INTO clients (id, name) VALUES (?, ?)",
+                (client["id"], client["name"]),
+            )
+        # Tasks
+        for task in entities.get("tasks", []):
+            conn.execute(
+                "INSERT OR REPLACE INTO tasks (id, name, project_id) VALUES (?, ?, ?)",
+                (task["id"], task["name"], task.get("project_id")),
+            )
+        # Expenses
+        for exp in entities.get("expenses", []):
+            conn.execute(
+                "INSERT OR REPLACE INTO expenses (id, amount, description, project_id, client_id) VALUES (?, ?, ?, ?, ?)",
+                (exp["id"], exp["amount"], exp.get("description"), exp.get("project_id"), exp.get("client_id")),
+            )
+        # Reminders
+        for rem in entities.get("reminders", []):
+            conn.execute(
+                "INSERT OR REPLACE INTO reminders (id, text, date) VALUES (?, ?, ?)",
+                (rem["id"], rem["text"], rem.get("date")),
+            )
+
+    results["status"] = "ok"
+    results["counts"] = {k: len(v) for k, v in entities.items()}
+    return results

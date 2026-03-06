@@ -10,6 +10,7 @@ from .integrations import (
     capture_flow_job_failure,
     capture_receipt_patterns,
     capture_wizard_preference,
+    capture_graph_entities,
 )
 from .session_buffer import SessionBuffer
 from .store import MemoryStore
@@ -180,3 +181,10 @@ def integration_wizard_preference(
     root: str | Path = "memory",
 ) -> dict[str, Any]:
     return capture_wizard_preference(mode=mode, root=str(root))
+
+
+def integration_graph_sync(
+    entities: dict[str, list[dict[str, Any]]],
+    root: str | Path = "memory",
+) -> dict[str, Any]:
+    return capture_graph_entities(entities=entities, root=str(root))

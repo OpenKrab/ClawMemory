@@ -10,7 +10,12 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Nattapong" }]
-dependencies = []
+dependencies = [
+  "rich>=13.0"
+]
+
+[tool.setuptools]
+packages = ["clawmemory"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
